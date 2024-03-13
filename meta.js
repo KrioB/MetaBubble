@@ -6,10 +6,11 @@ class Vector {
 }
 
 class Bubble {
-    constructor(position, velocity, size) {
+    constructor(position, velocity, size, charge = 1) {
         this.position = position;
         this.velocity = velocity;
         this.size = size;
+        this.charge = charge;
     }
 
     move(dt) {
@@ -26,15 +27,30 @@ class Bubble {
     }
 }
 
-const count = 8;
+// Debug frame by frame
+// let deltaT = 0;
+// const incrementT = 32;
+
+// document.addEventListener("keydown", (e) => {
+//     let delta = 0;
+//     if(e.key == 'q') {
+//         deltaT -= incrementT;
+//     }
+//     else if(e.key == 'w') {
+//         deltaT += incrementT;
+//     }
+// });
+
+const count = 16;
 const sizeMin = 20;
-const sizeMax = 100;
+const sizeMax = 120;
 const velocityMax = 50;
-const gridSize = 2;
+const positiveP = 0.8;
+const gridSize = 12;
 const showGrid = false;
 const halfGridSize = gridSize / 2;
 
-let treshold = 2;
+let treshold = 2.2;
 const gamma = (r, x, y, x0, y0) => {
     x -= x0;
     y -= y0;
@@ -56,6 +72,7 @@ const bubbleCollection = [];
 for(let i = 0; i < count; i++) {
 
     const r = Math.round(Math.random() * (sizeMax - sizeMin) + sizeMin);
+    const q = (Math.random() / positiveP) <= 1;
 
     const p = new Vector(
         Math.round(Math.random() * (innerWidth - 2 * r) + r),
@@ -66,12 +83,18 @@ for(let i = 0; i < count; i++) {
         Math.round(Math.random() * 2 * velocityMax - velocityMax),
         Math.round(Math.random() * 2 * velocityMax - velocityMax)
     );
+    if(q) {
+        bubbleCollection.push(new Bubble(p, v, r, 1));
+    }
+    else {
+        bubbleCollection.push(new Bubble(p, v, r, -1));
+    }
 
-    bubbleCollection.push(new Bubble(p, v, r));
 }
 
 // Start simulation
 let pts = performance.now();
+// let pts = deltaT;    // Debug frame by frame
 animate();
 
 
@@ -82,17 +105,14 @@ function animate() {
 
 
     let cts = performance.now();
+    // let cts = deltaT;    // Debug frame by frame
 
     let dt = cts - pts;
-
-    baner.innerText = Math.round(1000 / dt) + ' fps';
-    //console.log(Math.round(dt) + 'ms');
-    dt /= 1000;
-
     pts = cts;
 
-    ctx.fillStyle = color;
-    ctx.lineWidth = 1;
+    // FPS indicator
+    // baner.innerText = Math.round(1000 / dt) + ' fps';
+    dt /= 1000;
 
     bubbleCollection.forEach( (b) => {
         b.move(dt);
@@ -109,7 +129,7 @@ function animate() {
             let f = 0;
 
             bubbleCollection.forEach( (b) => {
-                f += gamma(b.size, u, v, b.position.x, b.position.y);
+                f += gamma(b.size * b.charge, u, v, b.position.x, b.position.y);
             });
 
             column.push(f);
@@ -135,17 +155,18 @@ function animate() {
             let x = u * gridSize;
             let y = v * gridSize;
 
-            if(showGrid) {
-                ctx.strokeStyle = 'rgba(191, 237, 26, 0.5)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.rect(x - gridSize, y - gridSize, gridSize, gridSize);
-                ctx.stroke();
-            }
+
+            // Render debug grid
+            // ctx.strokeStyle = 'rgba(191, 237, 26, 0.5)';
+            // ctx.lineWidth = 1;
+            // ctx.beginPath();
+            // ctx.rect(x - gridSize, y - gridSize, gridSize, gridSize);
+            // ctx.stroke();
+
 
 
             ctx.strokeStyle = color;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 2;
 
             switch(sqb) {
                 case 0:
@@ -227,15 +248,32 @@ function animate() {
         }
     }
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    // Render debug bubble
+    // bubbleCollection.forEach( (b) => {
+    //     if(b.charge > 0) {
+    //         ctx.strokeStyle = 'green';
+    //     }
+    //     else {
+    //         ctx.strokeStyle = 'red';
+    //     }
+
+    //     ctx.lineWidth = 1;
+    //     ctx.beginPath();
+    //     ctx.arc(b.position.x, b.position.y, b.size, 0, 2 * Math.PI);
+    //     ctx.stroke();
+    // });
+
 
 
 
 }
 
+function hash(u, v) {
+    return u + ' ' + v;
+}
+
 function aprox(step, va, vb) {
-    return va * step / (vb + va);
+    return step - step * (treshold - va) / (vb - va);
 }
 
 
